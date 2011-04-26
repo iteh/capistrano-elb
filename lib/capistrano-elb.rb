@@ -4,19 +4,21 @@ require 'capistrano'
 require 'pp'
 
 class CapELB
-  def initialize(configdir=File.join(Dir.pwd, 'config'))
-    ec2credentials = YAML::load(File.open(File.join(configdir, 'ec2credentials.yaml')))
-    aws = Fog::Compute.new(ec2credentials.merge({:provider=>'AWS'}))
+  def initialize(config={})
+    configdir=File.join(RAILS_ROOT, 'config')
+    #ec2credentials = YAML::load(File.open(File.join(configdir, 'ec2credentials.yaml'))) 
+    @ec2credentials = config
+    aws = Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS'}))
     @regions = aws.describe_regions.body["regionInfo"].map {|region| region["regionName"]}
 
     @compute = {}
     @regions.each do |region|
-      @compute.merge!(region => Fog::Compute.new(ec2credentials.merge({:provider=>'AWS',:region=>region})))
+      @compute.merge!(region => Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS',:region=>region})))
     end
 
     @elb = {}
     @regions.each do |region|
-      @elb.merge!(region => Fog::AWS::ELB.new(ec2credentials.merge(:region=>region)))
+      @elb.merge!(region => Fog::AWS::ELB.new(@ec2credentials.merge(:region=>region)))
     end
     
     @lbsfile = File.join(configdir, 'lbs.yaml') 
@@ -82,5 +84,14 @@ class CapELB
         yield(@elb[region], lbname, to_change) unless to_change.empty?
       end
     end
+  end
+  
+  def create_instance(options={})
+    fog = Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS'}))
+    # start a server
+    server = fog.servers.create(options)
+    # wait for it to get online
+    server.wait_for { print "."; ready? }
+    server
   end
 end

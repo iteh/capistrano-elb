@@ -1,30 +1,76 @@
 require "capistrano-elb"
 
-Capistrano::Configuration.instance(:must_exist).load do
   namespace :elb do
-    capELB = CapELB.new()
     
     task :remove do 
+      capELB = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key)
+
       servers = roles[:web].servers.map {|server| server.host}
       puts "Removing #{servers} from ELB"
       capELB.remove servers
     end
 
-    task :add do 
+    task :add do
+      capELB = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key)
+
       servers = roles[:web].servers.map {|server| server.host}
       puts "Adding #{servers} to ELB"
       capELB.add servers
     end
-    
+
     task :save do
+      capELB = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key)
+
       capELB.save_config
     end
-    
-    task :check do 
+
+    task :check do
+      capELB = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key)
+
       puts capELB.check_config
     end
   end
 
+  namespace :ec2 do
+
+
+    desc "create a new instance"
+    task :create_instance do
+      capFog = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key, :region => aws_region)
+      server = capFog.create_instance(
+      :image_id => aws_ami_id,
+      :flavor_id => aws_instance_type,
+      :key_name => aws_keyname,
+      :availability_zone => aws_availability_zone
+      )
+      logger.info server.dns_name
+      set :current_instance, server
+      server
+    end
+
+    desc "create an new instance and install chef"
+    task :create_instance_with_chef_env do
+      server =  create_instance
+      logger.info server.dns_name
+      parent.roles[:app] = [Capistrano::ServerDefinition.new(server.dns_name)]  
+      ensure_ssh_connection  
+      chef.install
+      server
+    end
+    
+    task :ensure_ssh_connection, :roles => :app do
+      begin
+        run "echo"
+      rescue
+        puts "retry ssh"
+        sleep 10
+        retry
+      end 
+    end
+  end
+
+
+
+
   before "deploy", "elb:remove"
   after "deploy", "elb:add"
-end
