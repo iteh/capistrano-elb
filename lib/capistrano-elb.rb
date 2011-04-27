@@ -94,4 +94,25 @@ class CapELB
     server.wait_for { print "."; ready? }
     server
   end
+
+  def add_server_instance_to_elb(server,elb)
+    fog = Fog::AWS::ELB.new(@ec2credentials)
+    fog.register_instances_with_load_balancer(server.id,elb)
+    fog.describe_load_balancers(elb)
+  end
+
+  def remove_server_instance_from_elb(server,elb)
+    fog = Fog::AWS::ELB.new(@ec2credentials)
+    fog.register_instances_with_load_balancer(server.id,elb)
+    fog.describe_load_balancers(elb)
+  end
+
+  def servers_in_elb(elb_name)
+    elb = Fog::AWS::ELB.new(@ec2credentials)
+    compute = Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS'}))
+    instances = elb.describe_load_balancers(elb_name).body["DescribeLoadBalancersResult"]["LoadBalancerDescriptions"].first["Instances"]
+    servers = compute.servers.all('instance-id' => instances)
+    servers
+  end
+
 end

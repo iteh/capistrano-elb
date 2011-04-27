@@ -57,7 +57,16 @@ require "capistrano-elb"
       chef.install
       server
     end
-    
+
+    desc "create an new instance and install chef"
+    task :create_instance_with_chef_env_and_elb do
+      server =  create_instance_with_chef_env
+      capFog = CapELB.new(:aws_access_key_id => aws_access_key, :aws_secret_access_key => aws_secret_access_key, :region => aws_region)
+      elb = capFog.add_server_instance_to_elb(server,stage_elb_name)
+      #logger.info elb
+      server
+    end
+
     task :ensure_ssh_connection, :roles => :app do
       begin
         run "echo"
