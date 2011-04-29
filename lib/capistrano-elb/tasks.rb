@@ -71,7 +71,7 @@ require "capistrano-elb"
       begin
         run "echo"
       rescue
-        puts "retry ssh"
+        logger.info "retry ssh after 10 seconds"
         sleep 10
         retry
       end 
