@@ -43,6 +43,7 @@ require "capistrano-elb"
       :key_name => aws_keyname,
       :availability_zone => aws_availability_zone
       )
+      capFog.create_tags(server.id,{"name" => "#{webistrano_project}-#{webistrano_stage}-#{server.id}"})
       logger.info server.dns_name
       set :current_instance, server
       server

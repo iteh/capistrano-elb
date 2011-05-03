@@ -95,6 +95,12 @@ class CapELB
     server
   end
 
+  def create_tags(resources,tags={})
+    fog = Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS'}))
+    fog.create_tags(resources,tags)
+  end
+
+
   def add_server_instance_to_elb(server,elb)
     fog = Fog::AWS::ELB.new(@ec2credentials)
     fog.register_instances_with_load_balancer(server.id,elb)
