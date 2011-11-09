@@ -9,7 +9,7 @@ class CapELB
     #ec2credentials = YAML::load(File.open(File.join(configdir, 'ec2credentials.yaml'))) 
     @ec2credentials = config
     aws = Fog::Compute.new(@ec2credentials.merge({:provider=>'AWS'}))
-    @regions = aws.describe_regions.body["regionInfo"].map {|region| region["regionName"]}
+    @regions = aws.describe_regions.body["regionInfo"].map {|region| region["regionName"] unless region["regionName"]=="us-west-2"}.compact
 
     @compute = {}
     @regions.each do |region|
